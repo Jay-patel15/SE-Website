@@ -26,6 +26,9 @@ export const brand = {
   phone: "+91 99999 99999",
   email: "info@siddhielectricals.com",
   address: "Mumbai, Maharashtra, India",
+  whatsapp: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "919999999999",
+  hours: "Mon – Sat, 9:00 AM – 7:00 PM",
+  url: process.env.NEXT_PUBLIC_SITE_URL || "https://siddhielectricals.com",
   logoWide: "/brand/siddhi-electricals-logo-wide.jpg",
   logoBulb: "/brand/siddhi-electricals-bulb.png"
 };
@@ -35,9 +38,7 @@ export const navItems = [
   { label: "About", href: "/about" },
   { label: "Services", href: "/services" },
   { label: "Projects", href: "/projects" },
-  { label: "Tools", href: "/calculators" },
-  { label: "Blog", href: "/blog" },
-  { label: "Careers", href: "/careers" },
+  { label: "Calculators", href: "/calculators" },
   { label: "Contact", href: "/contact" }
 ];
 
@@ -70,7 +71,7 @@ export const services = [
     slug: "electrical-panels",
     title: "Electrical Panels",
     icon: PanelsTopLeft,
-    image: "https://images.unsplash.com/photo-1518709268805-4e9042af2176?auto=format&fit=crop&w=900&q=80",
+    image: "https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?auto=format&fit=crop&w=900&q=80",
     summary: "LT, MCC, PCC, control, and distribution panel planning and installation.",
     details: ["LT panels", "Distribution panels", "MCC panels", "PCC panels", "Control panels", "Panel maintenance"]
   },
@@ -141,18 +142,18 @@ export const industries = [
 ];
 
 export const calculators = [
-  { slug: "ev-charging", title: "EV Charging Time Calculator", icon: BatteryCharging },
-  { slug: "solar", title: "Solar Calculator", icon: Sun },
-  { slug: "consumption", title: "Consumption Calculator", icon: Calculator },
-  { slug: "load", title: "Electrical Load Calculator", icon: Gauge },
-  { slug: "power", title: "Electrical Power Calculator", icon: Zap },
-  { slug: "cable-size", title: "Cable Size Calculator", icon: Bolt },
-  { slug: "voltage-drop", title: "Voltage Drop Calculator", icon: PlugZap },
-  { slug: "ups", title: "UPS Capacity Calculator", icon: BatteryCharging },
-  { slug: "generator", title: "Generator Sizing Calculator", icon: Gauge },
-  { slug: "transformer", title: "Transformer Calculator", icon: ShieldCheck },
-  { slug: "home-automation", title: "Home Automation Calculator", icon: Home },
-  { slug: "cctv", title: "CCTV Requirement Calculator", icon: Camera }
+  { slug: "ev-charging", title: "EV Charging Time Calculator", description: "Calculate EV charging time, energy consumed, and charging cost.", icon: BatteryCharging },
+  { slug: "solar", title: "Solar Calculator", description: "Estimate solar capacity, panels, savings, ROI, and payback period.", icon: Sun },
+  { slug: "consumption", title: "Consumption Calculator", description: "Estimate appliance energy consumption and monthly electricity bill.", icon: Calculator },
+  { slug: "load", title: "Electrical Load Calculator", description: "Calculate connected load, demand load, recommended MCB, and monthly bill.", icon: Gauge },
+  { slug: "power", title: "Electrical Power Calculator", description: "Calculate single-phase and three-phase electrical power.", icon: Zap },
+  { slug: "cable-size", title: "Cable Size Calculator", description: "Estimate cable size, voltage drop, and safety margin.", icon: Bolt },
+  { slug: "voltage-drop", title: "Voltage Drop Calculator", description: "Calculate voltage drop, percentage loss, and safe/warning/critical status.", icon: PlugZap },
+  { slug: "ups", title: "UPS Capacity Calculator", description: "Estimate UPS capacity and battery bank size.", icon: BatteryCharging },
+  { slug: "generator", title: "Generator Sizing Calculator", description: "Estimate recommended generator size from running and starting load.", icon: Gauge },
+  { slug: "transformer", title: "Transformer Calculator", description: "Estimate transformer capacity from connected load, demand factor, and power factor.", icon: ShieldCheck },
+  { slug: "home-automation", title: "Home Automation Calculator", description: "Estimate smart home automation budget and installation cost.", icon: Home },
+  { slug: "cctv", title: "CCTV Requirement Calculator", description: "Estimate CCTV camera count, NVR requirement, storage, and cost.", icon: Camera }
 ];
 
 export const projects = [
@@ -204,35 +205,22 @@ export const testimonials = [
   { quote: "Professional consultation, clean installation, and responsive after-service.", name: "Homeowner", company: "Residential Automation Project" }
 ];
 
-export const clientLogos = ["Adani", "Tata", "BEST", "Industrial Plants", "Commercial Sites", "Residential Societies"];
-
-export const blogPosts = [
-  { slug: "adani-meter-process", title: "Adani Meter Process", category: "Meter Approvals", summary: "Documents, load details, inspection steps, and common delays in Adani meter work." },
-  { slug: "tata-power-connection-guide", title: "Tata Power Connection Guide", category: "Meter Approvals", summary: "A practical guide to new connections, load enhancement, and handover requirements." },
-  { slug: "best-meter-passing-guide", title: "BEST Meter Passing Guide", category: "Meter Approvals", summary: "Understand meter passing workflows, site preparation, and inspection readiness." },
-  { slug: "electrical-safety", title: "Electrical Safety", category: "Electrical Safety", summary: "Safety checks every industrial, commercial, and residential site should run regularly." },
-  { slug: "earthing-guide", title: "Earthing Guide", category: "Electrical Safety", summary: "Earthing basics, testing expectations, and why readings matter for protection." },
-  { slug: "cable-selection-guide", title: "Cable Selection Guide", category: "Industrial Installations", summary: "How current, distance, voltage drop, derating, and installation method affect cable sizing." },
-  { slug: "mcb-selection-guide", title: "MCB Selection Guide", category: "Electrical Safety", summary: "MCB selection basics for safer distribution and predictable fault protection." },
-  { slug: "solar-guide", title: "Solar Guide", category: "Energy Savings", summary: "Capacity, panels, roof area, ROI, and payback considerations for solar planning." },
-  { slug: "home-automation-guide", title: "Home Automation Guide", category: "Smart Homes", summary: "Smart switches, scenes, voice control, CCTV integration, and practical budgets." }
-];
-
-export const downloads = [
-  { title: "Company Brochure", type: "PDF", description: "Company profile, services, and contact details." },
-  { title: "Technical Datasheets", type: "PDF", description: "Electrical planning references and field checklists." },
-  { title: "Service Catalogue", type: "PDF", description: "Detailed service categories and support workflows." }
-];
-
-export const processSteps = [
-  { title: "Consultation", description: "Understand site type, load, approval requirement, timeline, and budget." },
-  { title: "Survey & Design", description: "Inspect site conditions, prepare sizing, layout, and documentation." },
-  { title: "Execution", description: "Deploy licensed technicians, materials, safety checks, and supervision." },
-  { title: "Testing & Handover", description: "Complete inspection, test reports, commissioning, and client handover." }
-];
-
 export const certifications = [
   { title: "Licensed Electrical Contractor", icon: ClipboardCheck },
   { title: "Safety Compliance Workflow", icon: ShieldCheck },
   { title: "Approval Documentation Support", icon: Gauge }
+];
+
+export const stats = [
+  { value: "20+", label: "Years of experience" },
+  { value: "100+", label: "Projects delivered" },
+  { value: "500+", label: "Meters installed" },
+  { value: "Govt.", label: "Licensed contractor" }
+];
+
+export const faqs = [
+  { q: "Do you handle Adani, Tata Power and BEST meter connections?", a: "Yes. We prepare the test report, load documents and meter board, then coordinate the inspection for new connections, meter passing and load enhancement with Adani Electricity, Tata Power and BEST." },
+  { q: "Which areas do you serve?", a: "We work across Mumbai, Thane and Navi Mumbai for industrial, commercial and residential sites. Larger industrial projects outside the region are taken up on request." },
+  { q: "Are you a licensed electrical contractor?", a: "Yes. Siddhi Electricals is a Government licensed electrical contractor, and every installation is tested and documented before handover." },
+  { q: "How do I get a quotation?", a: "Call, WhatsApp or send the enquiry form with your site type, approximate load and location. We arrange a site survey and share a detailed quotation." }
 ];

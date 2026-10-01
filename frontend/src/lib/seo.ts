@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { brand } from "@/constants/site";
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://siddhielectricals.com";
-
-export function pageSeo(title: string, description: string, keywords: string[] = []): Metadata {
-  const fullTitle = title === brand.name ? title : `${title} | ${brand.name}`;
+export function pageSeo(title: string, description: string, path = "/", keywords: string[] = []): Metadata {
+  const isHome = title === brand.name;
+  const fullTitle = isHome ? `${brand.name} | Electrical Contractor in Mumbai` : `${title} | ${brand.name}`;
 
   return {
-    title: title === brand.name ? { absolute: brand.name } : title,
+    title: isHome ? { absolute: fullTitle } : title,
     description,
     keywords: [
       "Electrical Contractor Mumbai",
@@ -22,20 +21,16 @@ export function pageSeo(title: string, description: string, keywords: string[] =
       "Home Automation Mumbai",
       ...keywords
     ],
-    alternates: { canonical: baseUrl },
+    alternates: { canonical: path },
     openGraph: {
       title: fullTitle,
       description,
-      url: baseUrl,
+      url: path,
       siteName: brand.name,
-      images: [{ url: "/brand/siddhi-electricals-logo-wide.jpg", width: 1280, height: 401 }],
+      images: [{ url: brand.logoWide, width: 1280, height: 401, alt: brand.name }],
       locale: "en_IN",
       type: "website"
     },
-    twitter: {
-      card: "summary_large_image",
-      title: fullTitle,
-      description
-    }
+    twitter: { card: "summary_large_image", title: fullTitle, description }
   };
 }

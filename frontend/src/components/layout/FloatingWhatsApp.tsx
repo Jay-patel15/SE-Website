@@ -1,9 +1,25 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Calculator, MessageCircle } from "lucide-react";
+import { brand } from "@/constants/site";
+
 export function FloatingWhatsApp() {
-  const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "919999999999";
+  const pathname = usePathname();
+  if (pathname?.startsWith("/admin")) return null;
 
   return (
-    <a className="floating-wa" href={`https://wa.me/${phone}`} target="_blank" rel="noreferrer">
-      WhatsApp
-    </a>
+    <>
+      {pathname?.startsWith("/calculators") ? null : (
+        <Link className="floating-calc" href="/calculators" aria-label="Open electrical calculators">
+          <Calculator size={20} />
+          <span>Calculators</span>
+        </Link>
+      )}
+      <a className="floating-wa" href={`https://wa.me/${brand.whatsapp}`} target="_blank" rel="noopener noreferrer" aria-label="Chat with us on WhatsApp">
+        <MessageCircle size={26} />
+      </a>
+    </>
   );
 }

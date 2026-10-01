@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { saveLead } from "@/lib/dataClient";
+import { services } from "@/constants/site";
 
-const services = ["Electrical Contracting", "Electrical Consultancy", "Meter Passing", "Electrical Panels", "CCTV", "Home Automation", "Energy Management"];
-
-export function ContactForm() {
+export function ContactForm({ defaultService = "" }: { defaultService?: string }) {
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+  const options = services.map((s) => s.title);
+  const initial = options.includes(defaultService) ? defaultService : "";
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -14,8 +16,7 @@ export function ContactForm() {
     setMessage("");
 
     const form = event.currentTarget;
-    const formData = new FormData(form);
-    const payload = Object.fromEntries(formData.entries());
+    const payload = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
 
     try {
       const response = await fetch("/api/leads", {
@@ -23,37 +24,50 @@ export function ContactForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
+      if (!response.ok) throw new Error("Unable to submit inquiry");
 
-      if (!response.ok) {
-        throw new Error("Unable to submit inquiry");
-      }
+      await saveLead({
+        name: payload.name,
+        phone: payload.phone,
+        email: payload.email || "",
+        service: payload.service,
+        location: payload.location || "",
+        message: payload.message
+      });
 
       form.reset();
       setStatus("success");
-      setMessage("Inquiry received. Siddhi Electricals will contact you shortly.");
+      setMessage("Thank you! Our team will contact you shortly.");
     } catch {
       setStatus("error");
-      setMessage("Please check the details and try again.");
+      setMessage("Something went wrong. Please check your details or call us directly.");
     }
   }
 
   return (
-    <form className="card" onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit}>
       <div className="form-grid">
-        <input className="input" name="name" placeholder="Name" required minLength={2} />
-        <input className="input" name="phone" placeholder="Phone" required minLength={8} />
-        <input className="input" name="email" placeholder="Email" type="email" />
-        <select className="select" name="service" defaultValue="" required>
-          <option value="" disabled>Service required</option>
-          {services.map((service) => <option key={service}>{service}</option>)}
-        </select>
-        <input className="input full-span" name="location" placeholder="Project location" />
+        <label className="field">Name *<input className="input" name="name" autoComplete="name" required minLength={2} /></label>
+        <label className="field">Phone *<input className="input" name="phone" type="tel" autoComplete="tel" required minLength={8} /></label>
+        <label className="field">Email<input className="input" name="email" type="email" autoComplete="email" /></label>
+        <label className="field">
+          Service *
+          <select className="select" name="service" defaultValue={initial} required>
+            <option value="" disabled>Select a service</option>
+            {options.map((s) => <option key={s}>{s}</option>)}
+            <option>Other</option>
+          </select>
+        </label>
+        <label className="field full-span">Project location<input className="input" name="location" placeholder="e.g. Andheri East, Mumbai" /></label>
+        <label className="field full-span">
+          Project details *
+          <textarea className="textarea" name="message" placeholder="Site type, approximate load, meter requirement or timeline" required minLength={5} />
+        </label>
       </div>
-      <textarea className="textarea" name="message" placeholder="Project details, load, meter requirement, or site timeline" required minLength={5} style={{ marginTop: 14 }} />
-      <button className="btn btn-primary" type="submit" style={{ marginTop: 14 }} disabled={status === "submitting"}>
-        {status === "submitting" ? "Submitting..." : "Submit Inquiry"}
+      <button className="btn btn-primary" type="submit" style={{ marginTop: 20, width: "100%" }} disabled={status === "submitting"}>
+        {status === "submitting" ? "Sending..." : "Send Enquiry"}
       </button>
-      {message ? <p className={`status ${status === "success" ? "ok" : "error"}`}>{message}</p> : null}
+      {message ? <p className={`status ${status === "success" ? "ok" : "error"}`} role="status">{message}</p> : null}
     </form>
   );
 }

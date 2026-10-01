@@ -1,8 +1,7 @@
 import type { MetadataRoute } from "next";
-import { calculators, navItems, projects, services } from "@/constants/site";
+import { brand, calculators, navItems, projects, services } from "@/constants/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://siddhielectricals.com";
   const routes = [
     ...navItems.map((item) => item.href),
     ...services.map((item) => `/services/${item.slug}`),
@@ -12,7 +11,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ];
 
   return routes.map((route) => ({
-    url: `${baseUrl}${route}`,
-    lastModified: new Date()
+    url: `${brand.url}${route === "/" ? "" : route}`,
+    lastModified: new Date(),
+    priority: route === "/" ? 1 : route.split("/").length > 2 ? 0.6 : 0.8
   }));
 }

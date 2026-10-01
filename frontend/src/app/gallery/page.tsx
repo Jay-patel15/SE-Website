@@ -1,26 +1,29 @@
+import { CtaBand } from "@/components/common/CtaBand";
+import { GalleryClient } from "@/components/common/GalleryClient";
 import { PageHero } from "@/components/common/PageHero";
-import { GalleryClient as GalleryComponent } from "@/components/common/GalleryClient";
 import { pageSeo } from "@/lib/seo";
 
 export const metadata = pageSeo(
-  "Project Gallery",
-  "Visual portfolio of panel fabrication, industrial cabling, utility installations, and CCTV surveillance execution by Siddhi Electricals."
+  "Gallery",
+  "Photos of electrical panels, industrial cabling, meter installations, earthing and CCTV work executed by Siddhi Electricals.",
+  "/gallery"
 );
 
 export default function GalleryPage() {
   return (
     <>
       <PageHero
-        eyebrow="Visual Portfolio"
-        title="Our Execution Gallery"
-        description="A curated look at our on-site wiring safety, custom control panel builds, electrical audits, and smart installation checkouts."
+        crumbs={[{ label: "Gallery", href: "/gallery" }]}
+        eyebrow="Gallery"
+        title="Our work on site"
+        description="A look at our panel builds, cabling, meter boards, earthing systems and smart installations."
       />
-
       <section className="band">
         <div className="container">
-          <GalleryComponent />
+          <GalleryClient />
         </div>
       </section>
+      <CtaBand />
     </>
   );
 }

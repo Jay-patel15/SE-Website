@@ -1,21 +1,37 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight, CheckCircle2, Phone } from "lucide-react";
+import { CtaBand } from "@/components/common/CtaBand";
+import { JsonLd } from "@/components/common/JsonLd";
 import { PageHero } from "@/components/common/PageHero";
 import { SectionHeader } from "@/components/common/SectionHeader";
-import { JsonLd } from "@/components/common/JsonLd";
-import { services, calculators } from "@/constants/site";
+import { brand, calculators, services } from "@/constants/site";
 import { pageSeo } from "@/lib/seo";
-import { CheckCircle2, Calculator, ArrowRight, Phone } from "lucide-react";
 
 type PageProps = { params: Promise<{ slug: string }> };
+
+const relatedCalculators: Record<string, string[]> = {
+  "electrical-contracting": ["load", "cable-size", "voltage-drop"],
+  "electrical-consultancy": ["load", "consumption", "generator"],
+  "meter-passing-services": ["load", "power"],
+  "electrical-panels": ["load", "transformer", "cable-size"],
+  "cctv-solutions": ["cctv"],
+  "home-automation": ["home-automation", "cctv"],
+  "energy-management": ["solar", "consumption", "ups"],
+  "industrial-installations": ["load", "cable-size", "transformer"],
+  "commercial-installations": ["load", "ups", "consumption"]
+};
 
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params;
   const service = services.find((item) => item.slug === slug);
+  if (!service) return {};
   return pageSeo(
-    service?.title || "Service",
-    service?.summary || "Professional electrical services in Mumbai."
+    `${service.title} in Mumbai`,
+    `${service.summary} Licensed electrical contractor serving Mumbai, Thane and Navi Mumbai.`,
+    `/services/${slug}`,
+    [service.title, ...service.details]
   );
 }
 
@@ -23,146 +39,87 @@ export function generateStaticParams() {
   return services.map((service) => ({ slug: service.slug }));
 }
 
-function getRelatedCalculators(slug: string) {
-  switch (slug) {
-    case "electrical-contracting":
-      return ["load", "cable-size", "voltage-drop", "power"];
-    case "electrical-consultancy":
-      return ["load", "consumption", "power", "generator"];
-    case "meter-passing-services":
-      return ["load", "power"];
-    case "electrical-panels":
-      return ["load", "transformer", "cable-size"];
-    case "cctv-solutions":
-      return ["cctv"];
-    case "home-automation":
-      return ["home-automation", "cctv"];
-    case "energy-management":
-      return ["solar", "consumption", "ups"];
-    case "industrial-installations":
-      return ["load", "cable-size", "generator", "transformer"];
-    case "commercial-installations":
-      return ["load", "ups", "consumption"];
-    default:
-      return ["load"];
-  }
-}
-
 export default async function ServiceDetailPage({ params }: PageProps) {
   const { slug } = await params;
   const service = services.find((item) => item.slug === slug);
   if (!service) notFound();
 
-  const relatedSlugs = getRelatedCalculators(slug);
-  const relatedCalcs = calculators.filter((calc) => relatedSlugs.includes(calc.slug));
-
-  const serviceSchema = {
-    "@context": "https://schema.org",
-    "@type": "Service",
-    "serviceType": service.title,
-    "provider": {
-      "@type": "LocalBusiness",
-      "name": "Siddhi Electricals",
-      "url": "https://siddhielectricals.com"
-    },
-    "description": service.summary,
-    "areaServed": "Mumbai"
-  };
+  const related = calculators.filter((c) => (relatedCalculators[slug] || ["load"]).includes(c.slug));
+  const others = services.filter((s) => s.slug !== slug).slice(0, 3);
 
   return (
     <>
-      <JsonLd data={serviceSchema} />
-
-      <PageHero
-        eyebrow="Service Details"
-        title={service.title}
-        description={service.summary}
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Service",
+          serviceType: service.title,
+          name: service.title,
+          description: service.summary,
+          provider: { "@id": `${brand.url}/#business` },
+          areaServed: ["Mumbai", "Thane", "Navi Mumbai"],
+          url: `${brand.url}/services/${slug}`
+        }}
       />
 
-      <section className="band" style={{ background: "#ffffff" }}>
+      <PageHero
+        crumbs={[{ label: "Services", href: "/services" }, { label: service.title, href: `/services/${slug}` }]}
+        eyebrow="Service"
+        title={service.title}
+        description={service.summary}
+        actions={
+          <>
+            <Link className="btn btn-secondary" href={`/contact?service=${encodeURIComponent(service.title)}`}>Request a Quote <ArrowRight size={16} /></Link>
+            <a className="btn btn-light" href={`tel:${brand.phone.replaceAll(" ", "")}`}><Phone size={16} /> Call Now</a>
+          </>
+        }
+      />
+
+      <section className="band band-white">
         <div className="container split">
-          {/* Main Info */}
           <div>
-            <SectionHeader eyebrow="Scope of Work" title={`What we do in ${service.title}`} />
-            
-            <div style={{ display: "grid", gap: 14, margin: "24px 0" }}>
-              {service.details.map((detail) => (
-                <div className="glass" key={detail} style={{ padding: 18, display: "flex", gap: 12, alignItems: "center" }}>
-                  <CheckCircle2 color="#0d7b5f" size={24} style={{ flexShrink: 0 }} />
-                  <span style={{ fontSize: "1.05rem", fontWeight: 700, color: "#1a1a1a" }}>{detail}</span>
-                </div>
+            <SectionHeader eyebrow="Scope of work" title="What's included" />
+            <ul className="check-list grid-2">
+              {service.details.map((d) => (
+                <li key={d} style={{ fontWeight: 600, color: "var(--foreground)" }}><CheckCircle2 size={20} /> {d}</li>
               ))}
-            </div>
-
-            <div style={{ display: "flex", gap: 14, marginTop: 28 }}>
-              <Link className="btn btn-primary" href={`/contact?service=${encodeURIComponent(service.title)}`}>
-                Request Service Quote
-              </Link>
-              <Link className="btn btn-secondary" href="/contact" style={{ display: "flex", gap: 8 }}>
-                <Phone size={16} /> Contact Sales
-              </Link>
-            </div>
+            </ul>
           </div>
-
-          {/* Visual Showcase */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            <div style={{ position: "relative", minHeight: 320, width: "100%", borderRadius: 8, overflow: "hidden", border: "1px solid #dde8e4" }}>
-              <Image
-                src={service.image}
-                alt={service.title}
-                fill
-                style={{ objectFit: "cover" }}
-                sizes="(max-width: 900px) 100vw, 45vw"
-              />
-            </div>
-            
-            <div className="glass" style={{ padding: 24 }}>
-              <h3 style={{ margin: "0 0 10px 0", color: "#0d7b5f" }}>Standard Execution Flow</h3>
-              <ol style={{ paddingLeft: 16, margin: 0, color: "#4c5754", fontSize: "0.95rem", display: "grid", gap: 8 }}>
-                <li>Site inspection &amp; initial load checklist.</li>
-                <li>Single Line Diagram (SLD) / Layout planning.</li>
-                <li>Procurement &amp; licensed field execution.</li>
-                <li>Insulation &amp; earth continuity inspections.</li>
-                <li>Utility submission (if required) &amp; Client handover.</li>
-              </ol>
-            </div>
+          <div className="image-frame wide">
+            <Image src={service.image} alt={`${service.title} by ${brand.name}`} fill sizes="(max-width: 720px) 100vw, 50vw" style={{ objectFit: "cover" }} />
           </div>
         </div>
       </section>
 
-      {/* Related Calculators Section */}
-      {relatedCalcs.length > 0 && (
-        <section className="band" style={{ background: "#f8f8f8" }}>
-          <div className="container">
-            <SectionHeader
-              eyebrow="Utility Tools"
-              title="Related Engineering Calculators"
-              description="Calculate load parameters, cable sizing, or solar ROI related to this service instantly."
-            />
-            <div className="grid grid-3" style={{ marginTop: 24 }}>
-              {relatedCalcs.map((calc) => {
-                const CalcIcon = calc.icon;
-                return (
-                  <div className="card" key={calc.slug} style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                        <CalcIcon color="#f7931e" size={24} />
-                        <h4 style={{ margin: 0, fontSize: "1.1rem" }}>{calc.title}</h4>
-                      </div>
-                      <p style={{ color: "#4c5754", fontSize: "0.9rem", lineHeight: 1.5, marginBottom: 18 }}>
-                        Estimate parameters instantly using our engineering-validated calculator form.
-                      </p>
-                    </div>
-                    <Link className="btn btn-primary" href={`/calculators/${calc.slug}`} style={{ width: "100%", display: "flex", gap: 8, minHeight: 38, fontSize: "0.85rem" }}>
-                      <Calculator size={16} /> Open Calculator <ArrowRight size={14} />
-                    </Link>
-                  </div>
-                );
-              })}
-            </div>
+      <section className="band">
+        <div className="container">
+          <SectionHeader eyebrow="Helpful tools" title="Related calculators" />
+          <div className="grid grid-3 trio">
+            {related.map((c) => {
+              const Icon = c.icon;
+              return (
+                <Link className="card" href={`/calculators/${c.slug}`} key={c.slug} style={{ display: "grid", gap: 12 }}>
+                  <span className="icon-badge orange"><Icon size={24} /></span>
+                  <h3 style={{ fontSize: "1.1rem" }}>{c.title}</h3>
+                  <p style={{ color: "var(--text)", fontSize: "0.95rem" }}>{c.description}</p>
+                </Link>
+              );
+            })}
           </div>
-        </section>
-      )}
+
+          <h2 style={{ fontSize: "1.4rem", margin: "64px 0 24px" }}>Other services</h2>
+          <div className="grid grid-3 trio">
+            {others.map((s) => (
+              <Link className="card" href={`/services/${s.slug}`} key={s.slug} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: 20 }}>
+                <span style={{ fontWeight: 700 }}>{s.title}</span>
+                <ArrowRight size={18} color="var(--primary)" />
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <CtaBand />
     </>
   );
 }
