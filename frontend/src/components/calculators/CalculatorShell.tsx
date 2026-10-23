@@ -16,11 +16,11 @@ const defaults: Record<string, Record<string, any>> = {
     appliances: [
       { name: "Tube Light / Decorative Light", defaultWatts: 40, unit: "Watts", watts: 40, quantity: 10, hours: 5 },
       { name: "CFL / LED", defaultWatts: 20, unit: "Watts", watts: 20, quantity: 20, hours: 5 },
-      { name: "Fan", defaultWatts: 75, unit: "Inches", options: [36, 48, 56], watts: 75, quantity: 1, hours: 11 },
+      { name: "Fan", defaultWatts: 75, unit: "Inches", rating: 48, watts: 75, quantity: 1, hours: 11 },
       { name: "Table Fan", defaultWatts: 40, unit: "Watts", watts: 40, quantity: 0, hours: 11 },
       { name: "Iron", defaultWatts: 750, unit: "Watts", watts: 750, quantity: 1, hours: 0.5 },
       { name: "Geyser", defaultWatts: 3000, unit: "Watts", watts: 3000, quantity: 2, hours: 1 },
-      { name: "Air Conditioner", defaultWatts: 1500, unit: "Ton", options: [1, 1.5, 2, 2.5], watts: 3000, quantity: 2, hours: 6 },
+      { name: "Air Conditioner", defaultWatts: 1500, unit: "Ton", rating: 2, watts: 3000, quantity: 2, hours: 6 },
       { name: "Refrigerator", defaultWatts: 300, unit: "Litres", watts: 300, quantity: 1, hours: 24 },
       { name: "Washing Machine", defaultWatts: 200, unit: "Watts", watts: 200, quantity: 1, hours: 1 },
       { name: "Oven", defaultWatts: 3000, unit: "Watts", watts: 3000, quantity: 1, hours: 0.5 },
@@ -43,19 +43,39 @@ const defaults: Record<string, Record<string, any>> = {
   cctv: { area: 2500, floors: 2, days: 15 }
 };
 
-function compute(slug: string, values: Record<string, number>) {
+function num(val: any, fallback = 0): number {
+  if (val === "" || val === null || val === undefined) return fallback;
+  const n = Number(val);
+  return isNaN(n) ? fallback : n;
+}
+
+function compute(slug: string, values: Record<string, any>) {
   switch (slug) {
     case "ev-charging": {
-      const energy = values.battery * ((values.target - values.current) / 100);
-      return { "Charging Time": `${(energy / values.charger).toFixed(1)} hrs`, "Energy Consumed": `${energy.toFixed(1)} kWh`, "Charging Cost": `₹${(energy * values.tariff).toFixed(0)}` };
+      const battery = num(values.battery);
+      const current = num(values.current);
+      const target = num(values.target);
+      const charger = num(values.charger);
+      const tariff = num(values.tariff);
+      const energy = Math.max(0, battery * ((target - current) / 100));
+      const hours = charger > 0 ? (energy / charger).toFixed(1) : "0.0";
+      return { "Charging Time": `${hours} hrs`, "Energy Consumed": `${energy.toFixed(1)} kWh`, "Charging Cost": `₹${(energy * tariff).toFixed(0)}` };
     }
     case "solar": {
-      const capacity = Math.max(values.units / 4, values.bill / (30 * values.tariff * 4));
-      return { "Required Solar Capacity": `${capacity.toFixed(1)} kW`, "Number of Panels": `${Math.ceil(capacity * 3)}`, "Monthly Savings": `₹${(capacity * 120 * values.tariff).toFixed(0)}`, "Payback Period": "3.5 - 5 years" };
+      const units = num(values.units);
+      const bill = num(values.bill);
+      const tariff = num(values.tariff);
+      const divisor = 30 * tariff * 4;
+      const capacity = divisor > 0 ? Math.max(units / 4, bill / divisor) : (units / 4);
+      return { "Required Solar Capacity": `${capacity.toFixed(1)} kW`, "Number of Panels": `${Math.ceil(capacity * 3)}`, "Monthly Savings": `₹${(capacity * 120 * tariff).toFixed(0)}`, "Payback Period": "3.5 - 5 years" };
     }
     case "consumption": {
-      const daily = (values.wattage * values.quantity * values.hours) / 1000;
-      return { "Daily Units": `${daily.toFixed(2)} kWh`, "Monthly Units": `${(daily * 30).toFixed(1)} kWh`, "Estimated Bill": `₹${(daily * 30 * values.tariff).toFixed(0)}` };
+      const wattage = num(values.wattage);
+      const quantity = num(values.quantity);
+      const hours = num(values.hours);
+      const tariff = num(values.tariff);
+      const daily = (wattage * quantity * hours) / 1000;
+      return { "Daily Units": `${daily.toFixed(2)} kWh`, "Monthly Units": `${(daily * 30).toFixed(1)} kWh`, "Estimated Bill": `₹${(daily * 30 * tariff).toFixed(0)}` };
     }
     case "load": {
       const appliances = Array.isArray(values.appliances) ? values.appliances : [];
@@ -63,9 +83,9 @@ function compute(slug: string, values: Record<string, number>) {
       let dailyConsumption = 0;
       
       appliances.forEach((app: any) => {
-        const qty = app.quantity || 0;
-        const watts = app.watts || 0;
-        const hrs = app.hours || 0;
+        const qty = num(app.quantity);
+        const watts = num(app.watts);
+        const hrs = num(app.hours);
         connected += (watts * qty) / 1000;
         dailyConsumption += (watts * qty * hrs) / 1000;
       });
@@ -92,11 +112,15 @@ function compute(slug: string, values: Record<string, number>) {
         "Estimated Monthly Bill": `₹${(dailyConsumption * 30 * 10).toFixed(0)}`
       };
     }
-    case "power":
-      return { "Single Phase Power": `${((values.voltage * values.current * values.pf) / 1000).toFixed(2)} kW`, "Three Phase Power": `${((1.732 * 415 * values.current * values.pf) / 1000).toFixed(2)} kW` };
+    case "power": {
+      const voltage = num(values.voltage);
+      const current = num(values.current);
+      const pf = num(values.pf);
+      return { "Single Phase Power": `${((voltage * current * pf) / 1000).toFixed(2)} kW`, "Three Phase Power": `${((1.732 * 415 * current * pf) / 1000).toFixed(2)} kW` };
+    }
     case "cable-size": {
-      const current = values.current || 0;
-      const distance = values.distance || 0;
+      const current = num(values.current);
+      const distance = num(values.distance);
       const material = String(values.material || "copper").toLowerCase();
       
       let size = 6;
@@ -125,7 +149,7 @@ function compute(slug: string, values: Record<string, number>) {
       }
 
       // Single phase voltage drop formula: 2 * I * L * rho / size
-      const drop = (2 * current * distance * resistivity) / size;
+      const drop = size > 0 ? (2 * current * distance * resistivity) / size : 0;
       const safetyMargin = "20%";
 
       return {
@@ -136,20 +160,42 @@ function compute(slug: string, values: Record<string, number>) {
       };
     }
     case "voltage-drop": {
-      const drop = (values.current * values.length * 0.018) / values.size;
-      const pct = (drop / values.voltage) * 100;
+      const current = num(values.current);
+      const length = num(values.length);
+      const size = num(values.size) || 1;
+      const voltage = num(values.voltage) || 1;
+      const drop = (current * length * 0.018) / size;
+      const pct = (drop / voltage) * 100;
       return { "Voltage Drop": `${drop.toFixed(2)} V`, "Percentage Loss": `${pct.toFixed(2)}%`, Status: pct < 3 ? "Safe" : pct < 5 ? "Warning" : "Critical" };
     }
-    case "ups":
-      return { "UPS Capacity": `${Math.ceil(values.load / 800)} kVA`, "Battery Bank Size": `${Math.ceil((values.load * values.backup) / 12 / 0.8)} Ah @ 12V` };
-    case "generator":
-      return { "Recommended Generator Size": `${Math.ceil((values.running + values.starting) * 1.25)} kVA` };
-    case "transformer":
-      return { "Transformer Capacity": `${Math.ceil((values.load * values.demand) / values.pf)} kVA` };
-    case "home-automation":
-      return { "Estimated Budget": `₹${((values.rooms * 25000) + (values.devices * 3500) + (values.cctv ? 45000 : 0)).toLocaleString("en-IN")}`, "Installation Cost": "Included after site survey" };
-    case "cctv":
-      return { "Camera Count": `${Math.ceil(values.area / 500) + values.floors}`, "NVR Requirement": "8/16 channel NVR", "Storage Requirement": `${Math.ceil(values.days * 0.5)} TB`, "Cost Estimate": "₹35,000 onwards" };
+    case "ups": {
+      const load = num(values.load);
+      const backup = num(values.backup);
+      return { "UPS Capacity": `${Math.ceil(load / 800)} kVA`, "Battery Bank Size": `${Math.ceil((load * backup) / 12 / 0.8)} Ah @ 12V` };
+    }
+    case "generator": {
+      const running = num(values.running);
+      const starting = num(values.starting);
+      return { "Recommended Generator Size": `${Math.ceil((running + starting) * 1.25)} kVA` };
+    }
+    case "transformer": {
+      const load = num(values.load);
+      const demand = num(values.demand);
+      const pf = num(values.pf, 0.9) || 0.9;
+      return { "Transformer Capacity": `${pf > 0 ? Math.ceil((load * demand) / pf) : 0} kVA` };
+    }
+    case "home-automation": {
+      const rooms = num(values.rooms);
+      const devices = num(values.devices);
+      const cctv = num(values.cctv);
+      return { "Estimated Budget": `₹${((rooms * 25000) + (devices * 3500) + (cctv ? 45000 : 0)).toLocaleString("en-IN")}`, "Installation Cost": "Included after site survey" };
+    }
+    case "cctv": {
+      const area = num(values.area);
+      const floors = num(values.floors);
+      const days = num(values.days);
+      return { "Camera Count": `${Math.ceil(area / 500) + floors}`, "NVR Requirement": "8/16 channel NVR", "Storage Requirement": `${Math.ceil(days * 0.5)} TB`, "Cost Estimate": "₹35,000 onwards" };
+    }
     default:
       return {};
   }
@@ -198,11 +244,11 @@ function labelFor(slug: string, key: string) {
 }
 
 export function CalculatorShell({ title, slug }: CalculatorShellProps) {
-  const [values, setValues] = useState(defaults[slug] || {});
+  const [values, setValues] = useState<Record<string, any>>(defaults[slug] || {});
   const results = useMemo(() => compute(slug, values), [slug, values]);
 
-  const updateAppliance = (index: number, patch: Record<string, number>) =>
-    setValues((curr) => {
+  const updateAppliance = (index: number, patch: Record<string, any>) =>
+    setValues((curr: any) => {
       const appliances = [...curr.appliances];
       appliances[index] = { ...appliances[index], ...patch };
       return { ...curr, appliances };
@@ -211,64 +257,146 @@ export function CalculatorShell({ title, slug }: CalculatorShellProps) {
   const shareText = `${title}\n${Object.entries(results).map(([k, v]) => `${k}: ${v}`).join("\n")}`;
 
   return (
-    <div className="calc">
-      <form className="card" onSubmit={(e) => e.preventDefault()}>
-        <h2 style={{ fontSize: "1.3rem" }}>Enter your details</h2>
-        <p style={{ color: "var(--text)", marginTop: 6 }}>Results update instantly as you type.</p>
-
-        {slug === "load" ? (
-          <div className="calc-table-wrap">
-            <table className="calc-table">
-              <thead>
-                <tr>
-                  <th>Appliance</th>
-                  <th style={{ width: 120 }}>Rating</th>
-                  <th style={{ width: 70 }}>Unit</th>
-                  <th style={{ width: 90 }}>Qty</th>
-                  <th style={{ width: 100 }}>Hours / day</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(values.appliances || []).map((app: any, index: number) => (
-                  <tr key={app.name}>
-                    <td>{app.name}</td>
-                    <td>
-                      {app.options ? (
-                        <select
-                          className="select"
-                          aria-label={`${app.name} rating`}
-                          value={app.unit === "Inches" ? (app.watts === 75 ? 48 : app.watts === 60 ? 36 : 56) : (app.watts / (app.unit === "Ton" ? 1500 : 1))}
-                          onChange={(e) => {
-                            const val = Number(e.target.value);
-                            updateAppliance(index, { watts: app.unit === "Ton" ? val * 1500 : (val === 48 ? 75 : val === 36 ? 60 : 90) });
-                          }}
-                        >
-                          {app.options.map((opt: number) => <option key={opt} value={opt}>{opt}</option>)}
-                        </select>
-                      ) : (
-                        <input className="input" type="number" min="0" aria-label={`${app.name} watts`} value={app.watts} onChange={(e) => updateAppliance(index, { watts: Number(e.target.value) })} />
-                      )}
-                    </td>
-                    <td style={{ color: "var(--muted)" }}>{app.unit}</td>
-                    <td><input className="input" type="number" min="0" aria-label={`${app.name} quantity`} value={app.quantity} onChange={(e) => updateAppliance(index, { quantity: Number(e.target.value) })} /></td>
-                    <td><input className="input" type="number" min="0" max="24" step="0.5" aria-label={`${app.name} hours per day`} value={app.hours} onChange={(e) => updateAppliance(index, { hours: Number(e.target.value) })} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+    <div className="calc-wrap">
+      <div className="print-header">
+        <div className="print-header-top">
+          <div>
+            <div className="print-brand-name">SIDDHI ELECTRICALS</div>
+            <div className="print-brand-tagline">Government Licensed Electrical Contractor · Mumbai</div>
           </div>
-        ) : (
-          <div className="form-grid" style={{ marginTop: 24 }}>
-            {Object.entries(values).map(([key, value]) => (
-              <label className="field" key={key}>
-                {labelFor(slug, key)}
-                {key === "material" ? (
-                  <select className="select" value={value} onChange={(e) => setValues((curr) => ({ ...curr, [key]: e.target.value }))}>
-                    <option value="copper">Copper</option>
-                    <option value="aluminium">Aluminium</option>
-                  </select>
-                ) : (
-                  <input className="input" type="number" step="any" value={value} onChange={(e) => setValues((curr) => ({ ...curr, [key]: Number(e.target.value) }))} />
+          <div className="print-meta">
+            <div><strong>Phone:</strong> {brand.phone}</div>
+            <div><strong>Email:</strong> {brand.email}</div>
+            <div><strong>Web:</strong> siddhielectricals.co.in</div>
+          </div>
+        </div>
+        <div className="print-header-title">
+          <h2>{title} — Estimate Report</h2>
+          <span className="print-date" suppressHydrationWarning>
+            Date: {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+          </span>
+        </div>
+      </div>
+
+      <div className={`calc ${slug === "load" ? "calc-load" : ""}`}>
+        <form className="card" onSubmit={(e) => e.preventDefault()}>
+          <h2 style={{ fontSize: "1.3rem" }}>Enter your details</h2>
+          <p style={{ color: "var(--text)", marginTop: 6 }}>Results update instantly as you type.</p>
+
+          {slug === "load" ? (
+            <div className="calc-table-wrap">
+              <table className="calc-table">
+                <thead>
+                  <tr>
+                    <th>Appliance</th>
+                    <th style={{ width: 120 }}>Rating</th>
+                    <th style={{ width: 70 }}>Unit</th>
+                    <th style={{ width: 90 }}>Qty</th>
+                    <th style={{ width: 100 }}>Hours / day</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(values.appliances || []).map((app: any, index: number) => (
+                    <tr key={app.name}>
+                      <td>{app.name}</td>
+                      <td>
+                        <input
+                          className="input"
+                          type="number"
+                          min="0"
+                          step={app.unit === "Ton" ? "0.5" : "1"}
+                          placeholder="0"
+                          aria-label={`${app.name} rating`}
+                          value={
+                            app.unit === "Inches"
+                              ? (app.rating ?? (app.watts === 60 ? 36 : app.watts === 90 ? 56 : 48))
+                              : app.unit === "Ton"
+                              ? (app.rating ?? (app.watts ? app.watts / 1500 : 2))
+                              : (app.watts ?? "")
+                          }
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (app.unit === "Inches") {
+                              const numVal = val === "" ? "" : Number(val);
+                              const watts = numVal === "" ? 0 : (numVal <= 36 ? 60 : numVal <= 48 ? 75 : 90);
+                              updateAppliance(index, { rating: numVal, watts });
+                            } else if (app.unit === "Ton") {
+                              const numVal = val === "" ? "" : Number(val);
+                              const watts = numVal === "" ? 0 : Number(numVal) * 1500;
+                              updateAppliance(index, { rating: numVal, watts });
+                            } else {
+                              updateAppliance(index, { watts: val === "" ? "" : Number(val) });
+                            }
+                          }}
+                        />
+                      </td>
+                      <td style={{ color: "var(--muted)" }}>{app.unit}</td>
+                      <td>
+                        <input
+                          className="input"
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          aria-label={`${app.name} quantity`}
+                          value={app.quantity ?? ""}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            updateAppliance(index, { quantity: val === "" ? "" : Number(val) });
+                          }}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="input"
+                          type="number"
+                          min="0"
+                          max="24"
+                          step="0.5"
+                          placeholder="0"
+                          aria-label={`${app.name} hours per day`}
+                          value={app.hours ?? ""}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            updateAppliance(index, { hours: val === "" ? "" : Number(val) });
+                          }}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="form-grid" style={{ marginTop: 24 }}>
+              {Object.entries(values).map(([key, value]) => (
+                <label className="field" key={key}>
+                  {labelFor(slug, key)}
+                  {key === "material" ? (
+                    <>
+                      <select className="select no-print" value={value} onChange={(e) => setValues((curr) => ({ ...curr, [key]: e.target.value }))}>
+                        <option value="copper">Copper</option>
+                        <option value="aluminium">Aluminium</option>
+                      </select>
+                      <div className="input print-only" style={{ textTransform: "capitalize" }}>
+                        {value}
+                      </div>
+                    </>
+                  ) : (
+                  <input
+                    className="input"
+                    type="number"
+                    step="any"
+                    placeholder="0"
+                    value={value ?? ""}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setValues((curr) => ({ ...curr, [key]: val === "" ? "" : Number(val) }));
+                    }}
+                  />
                 )}
               </label>
             ))}
@@ -286,13 +414,14 @@ export function CalculatorShell({ title, slug }: CalculatorShellProps) {
             <strong>{String(value)}</strong>
           </div>
         ))}
-        <div style={{ display: "grid", gap: 10, marginTop: 24 }}>
+        <div className="calc-actions" style={{ display: "grid", gap: 10, marginTop: 24 }}>
           <a className="btn btn-secondary" href={`https://wa.me/${brand.whatsapp}?text=${encodeURIComponent(`Hi, I need help with this:\n${shareText}`)}`} target="_blank" rel="noopener noreferrer">
-            Discuss with an engineer
+            Discuss with an expert
           </a>
           <button className="btn btn-light" type="button" onClick={() => window.print()}>Print results</button>
         </div>
       </aside>
+      </div>
     </div>
   );
 }

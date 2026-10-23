@@ -13,7 +13,7 @@ Goals, in priority order:
 1. **Generate enquiries:** calls, WhatsApp chats, contact-form leads.
 2. **Rank locally:** "electrical contractor Mumbai", "Adani meter connection", etc.
 3. **Build trust:** clean, modern, brand-consistent design; real project photos.
-4. **Free calculators:** useful tools that bring in search traffic and lead to "discuss with an engineer".
+4. **Free calculators:** useful tools that bring in search traffic and lead to "discuss with an expert".
 
 Design brief from the owner: **clean, modern, sleek, simple, uncluttered, fully responsive, matching the logo colours.**
 
@@ -158,7 +158,7 @@ All logic is in `src/components/calculators/CalculatorShell.tsx`:
 - `compute(slug, values)`: pure function returning `{ label: formattedValue }`
 - `fieldLabels` / `slugLabels`: human labels with units (slug-specific overrides where a key means different things, e.g. `load` in UPS = W, in transformer = kW)
 - UI: generic input grid; special appliance table for `load`; `material` key renders a Copper/Aluminium select
-- Results panel: live values, "Discuss with an engineer" (opens WhatsApp prefilled with the results), "Print results" (print stylesheet hides chrome)
+- Results panel: live values, "Discuss with an expert" (opens WhatsApp prefilled with the results), "Print results" (print stylesheet hides chrome)
 
 | Slug | Calculates |
 |---|---|
@@ -277,13 +277,57 @@ NEXT_PUBLIC_WHATSAPP_NUMBER=919999999999
 1. Replace placeholder phone/WhatsApp/address and confirm stats.
 2. Replace stock photos with real project photos (put them in `public/` or Supabase Storage).
 3. Real admin authentication (see §8).
-4. Persist/notify leads server-side (Supabase insert in `api/leads/route.ts` + email/WhatsApp alert).
+4. Leads are inserted server-side once `SUPABASE_SERVICE_ROLE_KEY` is set (see §12). Still to do: an email or WhatsApp alert to the owner on each new lead.
 5. Project detail pages for admin-added projects (fetch from Supabase at build/request time). Same for making the public Services pages admin-editable (they currently read `site.ts`).
 5a. Connect Supabase so admin edits and uploaded photos are shared across devices: create tables `projects`, `gallery`, `services`, `testimonials`, `contact_leads` and public Storage buckets `projects`, `gallery`, and set the env vars.
 6. Optional: a blog with real articles is a strong local-SEO lever (the old hidden blog was deleted 2026-10-01).
 7. Add Google Search Console + Google Business Profile; link the GBP map embed on `/contact`.
 
-## 12. Change log
+---
+
+## 12. Security
+
+Baseline: OWASP Top 10 / ASVS, secure by default. **Threat model:** public marketing site. Anonymous visitors only read pages and submit the contact form. The only privileged users are the company's staff in `/admin`. There is no public registration, no payments and no AI features.
+
+### Implemented
+
+| Area | What's in place | Where |
+|---|---|---|
+| Security headers | CSP, HSTS (2 y, preload), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` + `frame-ancestors 'none'`, `Referrer-Policy`, `Permissions-Policy`, COOP; `X-Powered-By` removed. `/admin/*` also sends `Cache-Control: no-store` + `X-Robots-Tag: noindex` | `frontend/next.config.ts` |
+| CSP notes | `script-src 'unsafe-inline'` is a deliberate trade-off: Next injects inline bootstrap scripts into static pages, and nonces would make every page dynamic. Mitigated by React output encoding and no user HTML rendering. `'unsafe-eval'` is sent only in `next dev`. `img-src https:` lets admins paste images from any https host. Verified: all pages hydrate with zero CSP violations | `next.config.ts` |
+| XSS | React escapes all output. The only raw-HTML sink is JSON-LD, which escapes every `<` (`serializeJsonLd`) so `</script>` can't break out. No `eval`/`innerHTML` anywhere | `components/common/JsonLd.tsx` |
+| Lead API (`POST /api/leads`) | Same-origin check (403); JSON-only (415); 10 KB body cap (413); strict zod schema: max lengths, name/phone charset, email format, **whitelisted** service, unknown fields rejected; honeypot field (bots get a fake 200); **5 submissions per 10 min per IP** (429); generic error messages only, no schema details or stack traces; PII-free audit log (`***210`); server-side insert with the service-role key | `app/api/leads/route.ts` |
+| Contact form | Mirrors server limits (`maxLength`), hidden honeypot, never shows raw network errors. With Supabase the browser never writes leads directly | `components/forms/ContactForm.tsx` |
+| Uploads | Raster whitelist (JPEG/PNG/WebP/GIF/AVIF, **no SVG**), 15 MB cap, every image **re-encoded via canvas** (drops polyglot payloads and EXIF/GPS), random storage filenames (no user filename or path ever used). Image fields accept only `https://` or the app's own `data:image/webp\|jpeg` URLs (`isSafeImageSrc` blocks `javascript:`, `http:`, SVG/HTML data URLs) | `lib/dataClient.ts`, `AdminModulePage.tsx` |
+| Secrets | Only `.env.example` is committed (empty values); `.env*` gitignored. History scanned: no secrets found. `SUPABASE_SERVICE_ROLE_KEY` has no `NEXT_PUBLIC_` prefix, so Next never inlines it into browser bundles | `.gitignore`, `.env.example` |
+| Dependencies | `npm audit fix` applied: `next` 15.5.19 → 15.5.27 (fixed a **critical** DoS/SSRF/cache-confusion advisory), plus sharp, nanoid and postcss. Minimum pinned to `^15.5.27`. Dependabot enabled | `package.json`, `.github/dependabot.yml` |
+| CI / DevSecOps | `.github/workflows/security.yml` runs on push/PR and weekly: **gitleaks** (secret scanning), `npm audit --audit-level=critical`, production build, **CodeQL** `security-extended` (SAST). CodeQL on a *private* repo needs GitHub Advanced Security; delete that job if it errors | `.github/workflows/security.yml` |
+
+**Runnable checks** (used during development): every API case was verified with curl: no/evil/`null` Origin → 403, form content-type → 415, malformed JSON → 400, unknown service or extra field → 400, valid → 200, honeypot → 200, 6th request → 429. Headers were verified with `curl -I`.
+
+### Known residual risks (accepted for now)
+
+- **`npm audit` still reports 2 advisories** (moderate `next`, high `postcss` bundled inside `next`). Both fix only in **Next 16 (major)**. The postcss issue is build-time only and processes our own CSS, not visitor input. Plan: upgrade to Next 16 as its own task. CI fails only on *critical*.
+- **Rate limiter is in-memory per server instance** (`ponytail:` comment in the route). On serverless hosting each instance has its own counter. Move to Upstash Redis / Vercel KV if spam gets through.
+- `x-forwarded-for` is trusted for the client IP, which is correct behind Vercel or a reverse proxy. If self-hosting without a proxy, use the socket address instead.
+
+### ⚠️ Not yet secure: admin authentication & authorization (critical, blocks production)
+
+The current admin is a **demo**: login is hardcoded `admin`/`admin` in the browser bundle, the session lives in `localStorage`, and all admin data is in the admin's own browser. Nothing in `/admin` is protected server-side. **Do not deploy the admin to production in this state.**
+
+**Planned design (Supabase, already a dependency):**
+
+- **Authentication:** Supabase Auth (bcrypt password hashing, email verification, expiring reset tokens, built-in auth rate limits) with **TOTP MFA required** for admins, and session cookies set server-side (`HttpOnly`, `Secure`, `SameSite=Strict`) via `@supabase/ssr`. Plus Next.js middleware that blocks `/admin/*` for anyone without a valid session and AAL2 (MFA), logout that revokes the refresh token, and session timeout. No public sign-up: staff are invited by a Super Admin.
+- **Authorization:** RBAC roles `super_admin`, `admin`, `manager` in a `staff` table, enforced by **Postgres Row Level Security** on every table, so the database refuses unauthorized reads and writes even if the frontend is bypassed (prevents IDOR and privilege escalation). Only `super_admin` can change roles. `contact_leads` has no anon policies (server inserts only), and staff read it per role.
+- **Schema:** foreign keys, unique slugs, indexes, `created_at`/`updated_at`/`created_by`/`updated_by` set by triggers (not trusted from the client), and an `audit_log` table written by triggers for every admin insert/update/delete and role change.
+- **Storage:** public-read buckets `projects` and `gallery` (published photos are public content) with bucket-level `allowed_mime_types` and `file_size_limit`, and write access only via RLS to staff roles.
+- **Backups:** Supabase daily backups (Pro plan) or point-in-time recovery, retained 7–30 days, with a quarterly restore test into a scratch project.
+
+### Not applicable (by design)
+
+Public user registration and the "User" role (visitors don't have accounts), payments, AI security (no AI features), and a Dockerfile/container hardening (the site deploys to Vercel, so there's no container to harden).
+
+## 13. Change log
 
 - **2026-10-01:** Full redesign. New design system from logo colours; rebuilt all public pages; per-page canonicals + structured data; fixed blank-email lead bug and a broken image URL; merged 12 duplicate calculator routes into `calculators/[slug]`; calculator UI rebuilt (logic unchanged).
 - **2026-10-01:** Decluttered (removed process/calculator-teaser/testimonial sections from home, milestones from About, process from service pages, phone from header, Gallery from main nav); added floating responsive Calculators button; stat "Happy clients" → "Meters installed"; fixed phone overflow on load calculator; tablet layout fixes.
@@ -297,3 +341,12 @@ NEXT_PUBLIC_WHATSAPP_NUMBER=919999999999
   - the session is checked once instead of on every navigation
   - the credential hint was removed from the login screen
 - **2026-10-01:** Cleanup. Deleted the Careers page and form, the Blog (public pages, admin module, seed data and data functions), the `backend/` Express shell, the `docs/` folder and the unused `processSteps` export. Uninstalled the unused `recharts`, `framer-motion`, `react-hook-form`, `@hookform/resolvers` and `clsx`; the remaining deps are next, react, react-dom, lucide-react, zod and @supabase/supabase-js. README corrected.
+- **2026-10-01:** Security hardening (§12):
+  - security headers and CSP
+  - `next` upgraded past a critical advisory
+  - the lead API rebuilt: origin check, strict validation, rate limit, honeypot, generic errors, server-side insert, PII-free logs
+  - JSON-LD XSS escaping
+  - upload whitelist, size cap, re-encoding and URL validation
+  - Dependabot and a CI security workflow (gitleaks, npm audit, CodeQL, build)
+
+  Admin auth is still the demo login; the planned Supabase design is documented in §12.

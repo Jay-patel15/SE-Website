@@ -18,7 +18,7 @@ export default async function ContactPage({ searchParams }: PageProps) {
 
   const details = [
     { icon: Phone, label: "Call us", value: brand.phone, href: tel },
-    { icon: MessageCircle, label: "WhatsApp", value: "Chat with an engineer", href: `https://wa.me/${brand.whatsapp}` },
+    { icon: MessageCircle, label: "WhatsApp", value: "Chat with an expert", href: `https://wa.me/${brand.whatsapp}` },
     { icon: Mail, label: "Email", value: brand.email, href: `mailto:${brand.email}` },
     { icon: MapPin, label: "Location", value: brand.address },
     { icon: Clock, label: "Working hours", value: brand.hours }

@@ -23,14 +23,23 @@ import {
 export const brand = {
   name: "Siddhi Electricals",
   tagline: "Powering Projects with Precision & Reliability",
-  phone: "+91 99999 99999",
-  email: "info@siddhielectricals.com",
+  phone: "+91 9892007108",
+  email: "siddhiele12@gmail.com",
   address: "Mumbai, Maharashtra, India",
-  whatsapp: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "919999999999",
+  whatsapp: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "919892007108",
   hours: "Mon – Sat, 9:00 AM – 7:00 PM",
-  url: process.env.NEXT_PUBLIC_SITE_URL || "https://siddhielectricals.com",
+  url: process.env.NEXT_PUBLIC_SITE_URL || "https://siddhielectricals.co.in",
   logoWide: "/brand/siddhi-electricals-logo-wide.jpg",
   logoBulb: "/brand/siddhi-electricals-bulb.png"
+};
+
+export const homeHero = {
+  eyebrow: "Licensed Electrical Contractor · Mumbai",
+  title: "Safe, reliable electrical work,",
+  titleHighlight: "done right the first time.",
+  headline: "We Deliver Complete Electrical Solutions for Homes, Offices, and Factories",
+  description:
+    "From initial design and certified installations to end-to-end meter approvals with Adani Electricity, Tata Power, and BEST—we handle your power needs from start to finish."
 };
 
 export const navItems = [

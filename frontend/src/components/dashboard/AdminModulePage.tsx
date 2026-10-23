@@ -28,6 +28,7 @@ import {
   getProjects,
   getServices,
   getTestimonials,
+  isSafeImageSrc,
   saveGalleryItem,
   saveProject,
   saveService,
@@ -266,6 +267,7 @@ export function AdminModulePage({ title }: { title: string }) {
     e.preventDefault();
     if (!editing || !config.save) return;
     if (config.imageFolder && !editing.data.image) return notify(false, "Please add a photo.");
+    if (editing.data.image && !isSafeImageSrc(editing.data.image)) return notify(false, "Image URL must start with https://");
 
     const record = { ...editing.data };
     config.fields.forEach((f) => {

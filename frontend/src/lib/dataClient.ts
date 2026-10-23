@@ -420,13 +420,26 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
+const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+
+// Image values saved on records: https URLs or the data URLs produced by uploadImage. Blocks
+// javascript:, http: (mixed content) and non-image data: URLs typed into the URL box.
+export function isSafeImageSrc(src: string): boolean {
+  return /^https:\/\/[^\s"'<>]+$/i.test(src) || /^data:image\/(webp|jpeg);base64,[A-Za-z0-9+/=]+$/.test(src);
+}
+
 /**
  * Upload an image and return a URL to store on the record.
  * Supabase: uploads to the Storage bucket named after `folder` ("projects" | "gallery") and returns its public URL.
  * No Supabase: returns a compressed WebP data URL kept in localStorage (~100-200 KB each).
  */
 export async function uploadImage(file: File, folder: "projects" | "gallery"): Promise<string> {
-  if (!file.type.startsWith("image/")) throw new Error("Please choose an image file.");
+  // Whitelist raster formats only: SVG can carry script, and anything else is rejected outright.
+  // Every upload is re-encoded through a canvas below, which also drops embedded payloads (polyglots)
+  // and EXIF metadata such as GPS location. Storage paths are random, so user filenames are never used.
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) throw new Error("Please choose a JPG, PNG, WebP, GIF or AVIF image.");
+  if (file.size > MAX_UPLOAD_BYTES) throw new Error("Image is too large (max 15 MB).");
 
   if (isSupabaseActive()) {
     try {

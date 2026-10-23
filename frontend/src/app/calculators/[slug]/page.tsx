@@ -43,31 +43,39 @@ export default async function CalculatorPage({ params }: PageProps) {
           publisher: { "@id": `${brand.url}/#business` }
         }}
       />
-      <PageHero
-        crumbs={[{ label: "Calculators", href: "/calculators" }, { label: calculator.title, href: `/calculators/${slug}` }]}
-        eyebrow="Calculator"
-        title={calculator.title}
-        description={calculator.description}
-      />
+      <div className="no-print">
+        <PageHero
+          crumbs={[{ label: "Calculators", href: "/calculators" }, { label: calculator.title, href: `/calculators/${slug}` }]}
+          eyebrow="Calculator"
+          title={calculator.title}
+          description={calculator.description}
+        />
+      </div>
       <section className="band">
         <div className="container">
-          <Link className="btn btn-ghost btn-sm" href="/calculators" style={{ marginBottom: 24 }}>
-            <ArrowLeft size={16} /> All calculators
-          </Link>
+          <div className="no-print">
+            <Link className="btn btn-ghost btn-sm" href="/calculators" style={{ marginBottom: 24 }}>
+              <ArrowLeft size={16} /> All calculators
+            </Link>
+          </div>
           <CalculatorShell title={calculator.title} slug={calculator.slug} />
 
-          <h2 style={{ fontSize: "1.4rem", margin: "72px 0 24px" }}>More calculators</h2>
-          <div className="grid grid-3">
-            {others.map((c) => (
-              <Link className="card" href={`/calculators/${c.slug}`} key={c.slug} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: 20 }}>
-                <span style={{ fontWeight: 700 }}>{c.title}</span>
-                <ArrowRight size={18} color="var(--primary)" />
-              </Link>
-            ))}
+          <div className="no-print">
+            <h2 style={{ fontSize: "1.4rem", margin: "72px 0 24px" }}>More calculators</h2>
+            <div className="grid grid-3">
+              {others.map((c) => (
+                <Link className="card" href={`/calculators/${c.slug}`} key={c.slug} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: 20 }}>
+                  <span style={{ fontWeight: 700 }}>{c.title}</span>
+                  <ArrowRight size={18} color="var(--primary)" />
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </section>
-      <CtaBand />
+      <div className="no-print">
+        <CtaBand />
+      </div>
     </>
   );
 }

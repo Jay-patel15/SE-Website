@@ -4,7 +4,7 @@ import { ArrowRight, CheckCircle2, Phone, ShieldCheck } from "lucide-react";
 import { CtaBand } from "@/components/common/CtaBand";
 import { JsonLd } from "@/components/common/JsonLd";
 import { SectionHeader } from "@/components/common/SectionHeader";
-import { brand, differentiators, faqs, projects, services, stats } from "@/constants/site";
+import { brand, differentiators, faqs, homeHero, projects, services, stats } from "@/constants/site";
 import { pageSeo } from "@/lib/seo";
 
 export const metadata = pageSeo(
@@ -33,10 +33,13 @@ export default function HomePage() {
           sizes="100vw"
         />
         <div className="container">
-          <span className="eyebrow">Licensed Electrical Contractor · Mumbai</span>
-          <h1>Safe, reliable electrical work, <span>done right the first time.</span></h1>
+          <span className="eyebrow">{homeHero.eyebrow}</span>
+          <h1>{homeHero.title} <span>{homeHero.titleHighlight}</span></h1>
           <p className="lead">
-            Siddhi Electricals designs, installs and certifies electrical systems for factories, offices and homes, and handles Adani, Tata Power and BEST meter approvals end to end.
+            <strong style={{ display: "block", color: "var(--white)", fontWeight: 700, marginBottom: "8px" }}>
+              {homeHero.headline}
+            </strong>
+            {homeHero.description}
           </p>
           <div className="hero-actions">
             <Link className="btn btn-secondary" href="/contact">Get a Free Quote <ArrowRight size={18} /></Link>
